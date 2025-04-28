@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useExpense } from '@/context/ExpenseContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ const TransactionList: React.FC = () => {
   const navigate = useNavigate();
   
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
@@ -60,7 +59,7 @@ const TransactionList: React.FC = () => {
           .includes(search.toLowerCase());
           
         // Category filter
-        const matchesCategory = !categoryFilter || transaction.categoryId === categoryFilter;
+        const matchesCategory = categoryFilter === 'all' || transaction.categoryId === categoryFilter;
         
         return matchesSearch && matchesCategory;
       })
@@ -225,7 +224,7 @@ const TransactionList: React.FC = () => {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem key="all" value="">All Categories</SelectItem>
+                <SelectItem key="all" value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     <div className="flex items-center">
