@@ -1,10 +1,10 @@
-
 import React from 'react';
 import AppLayout from '@/components/Layout/AppLayout';
 import DashboardStats from '@/components/Dashboard/DashboardStats';
 import CategoryChart from '@/components/Dashboard/CategoryChart';
 import RecentTransactions from '@/components/Dashboard/RecentTransactions';
 import ExpensePrediction from '@/components/Dashboard/ExpensePrediction';
+import ModelPerformance from '@/components/Dashboard/ModelPerformance';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -45,8 +45,13 @@ const Dashboard = () => {
           <ExpensePrediction />
         </div>
         
-        <div className="mb-8">
-          <RecentTransactions />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2">
+            <RecentTransactions />
+          </div>
+          <div>
+            <ModelPerformance />
+          </div>
         </div>
       </div>
     </AppLayout>

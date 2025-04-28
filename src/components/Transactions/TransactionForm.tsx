@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -15,21 +14,46 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useTransactionCategorizer } from '@/hooks/useTransactionCategorizer';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface TransactionFormProps {
   onSuccess?: () => void;
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
-  const { addTransaction, categories } = useExpense();
+  const { addTransaction, categories, getCategoryById } = useExpense();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { predictCategory, addFeedback, isModelTrained } = useTransactionCategorizer();
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ categoryId: string; confidence: number } | null>(null);
+  const [usedSuggestion, setUsedSuggestion] = useState(false);
+  
+  // Get suggestion when description changes
+  useEffect(() => {
+    if (description.trim().length > 3 && isModelTrained) {
+      const prediction = predictCategory(description);
+      if (prediction) {
+        setSuggestion(prediction);
+      }
+    } else {
+      setSuggestion(null);
+    }
+  }, [description, predictCategory, isModelTrained]);
+  
+  const handleSuggestionClick = () => {
+    if (suggestion) {
+      setCategoryId(suggestion.categoryId);
+      setUsedSuggestion(true);
+    }
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +88,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
         userId: user.id,
       });
       
+      // If the user changed the suggested category, add feedback for the ML model
+      if (suggestion && categoryId !== suggestion.categoryId) {
+        addFeedback(description, categoryId);
+      }
+      
       toast({
         title: 'Success',
         description: 'Transaction added successfully',
@@ -74,6 +103,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
       setAmount('');
       setCategoryId('');
       setDate(new Date().toISOString().split('T')[0]);
+      setSuggestion(null);
+      setUsedSuggestion(false);
       
       // Call the onSuccess callback if provided
       if (onSuccess) {
@@ -88,6 +119,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+  
+  // Format confidence as percentage
+  const formatConfidence = (confidence: number) => {
+    return `${Math.round(confidence * 100)}%`;
   };
   
   return (
@@ -109,7 +145,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount ($)</Label>
+            <Label htmlFor="amount">Amount (₹)</Label>
             <Input
               id="amount"
               type="number"
@@ -123,7 +159,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="category">Category</Label>
+              {suggestion && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    Suggested: 
+                  </span>
+                  <Badge 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-primary-100"
+                    onClick={handleSuggestionClick}
+                  >
+                    {getCategoryById(suggestion.categoryId)?.name || 'Unknown'} ({formatConfidence(suggestion.confidence)})
+                  </Badge>
+                  {usedSuggestion && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                </div>
+              )}
+            </div>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
@@ -137,11 +190,22 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
                         style={{ backgroundColor: category.color }}
                       ></span>
                       {category.name}
+                      {suggestion && suggestion.categoryId === category.id && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          (Suggested: {formatConfidence(suggestion.confidence)})
+                        </span>
+                      )}
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {isModelTrained && description.length > 0 && description.length <= 3 && (
+              <p className="text-xs text-gray-500 mt-1 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Type at least 4 characters for AI category suggestions
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -156,18 +220,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onSuccess }) => {
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/transactions')}
-        >
+      <CardFooter className="flex justify-end space-x-2">
+        <Button variant="outline" onClick={() => navigate('/transactions')}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          form="transaction-form"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" form="transaction-form" disabled={isSubmitting}>
           {isSubmitting ? 'Adding...' : 'Add Transaction'}
         </Button>
       </CardFooter>

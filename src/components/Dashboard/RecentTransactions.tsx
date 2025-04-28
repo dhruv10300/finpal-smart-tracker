@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useExpense } from '@/context/ExpenseContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +49,7 @@ const RecentTransactions: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-sm font-semibold">
-                    -${transaction.amount.toFixed(2)}
+                    -₹{transaction.amount.toFixed(2)}
                   </p>
                 </div>
               );

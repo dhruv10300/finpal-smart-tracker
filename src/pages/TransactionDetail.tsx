@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useExpense } from '@/context/ExpenseContext';
@@ -80,7 +79,7 @@ const TransactionDetail = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Amount</h3>
-                <p className="text-xl font-semibold">${transaction.amount.toFixed(2)}</p>
+                <p className="text-xl font-semibold">₹{transaction.amount.toFixed(2)}</p>
               </div>
               
               <div>
