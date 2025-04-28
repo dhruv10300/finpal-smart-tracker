@@ -11,7 +11,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
+import TransactionDetail from "./pages/TransactionDetail";
 import NewTransaction from "./pages/NewTransaction";
+import EditTransaction from "./pages/EditTransaction";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 // Context providers
@@ -35,6 +38,9 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/transactions/new" element={<NewTransaction />} />
+              <Route path="/transactions/:id" element={<TransactionDetail />} />
+              <Route path="/transactions/edit/:id" element={<EditTransaction />} />
+              <Route path="/profile" element={<Profile />} />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />

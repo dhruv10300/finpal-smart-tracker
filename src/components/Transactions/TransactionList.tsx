@@ -18,7 +18,8 @@ import {
   Plus, 
   ArrowUpDown,
   Trash2,
-  Edit
+  Edit,
+  Eye
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -26,6 +27,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const TransactionList: React.FC = () => {
   const { transactions, categories, getCategoryById, deleteTransaction } = useExpense();
@@ -35,6 +45,10 @@ const TransactionList: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   
   // Filter and sort transactions
   const filteredTransactions = useMemo(() => {
@@ -64,6 +78,14 @@ const TransactionList: React.FC = () => {
       });
   }, [transactions, search, categoryFilter, sortBy, sortDirection]);
   
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredTransactions.slice(startIndex, endIndex);
+  }, [filteredTransactions, currentPage, itemsPerPage]);
+  
   const toggleSort = (field: 'date' | 'amount') => {
     if (sortBy === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -71,6 +93,108 @@ const TransactionList: React.FC = () => {
       setSortBy(field);
       setSortDirection('desc');
     }
+  };
+  
+  // Navigate between pages
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    const pageItems = [];
+    
+    // Previous button
+    pageItems.push(
+      <PaginationItem key="prev">
+        <PaginationPrevious 
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+        />
+      </PaginationItem>
+    );
+    
+    // Page numbers
+    const maxPagesToShow = 5;
+    const halfMax = Math.floor(maxPagesToShow / 2);
+    
+    let startPage = Math.max(1, currentPage - halfMax);
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+    
+    if (endPage - startPage + 1 < maxPagesToShow) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    
+    // First page
+    if (startPage > 1) {
+      pageItems.push(
+        <PaginationItem key="1">
+          <PaginationLink onClick={() => goToPage(1)}>
+            1
+          </PaginationLink>
+        </PaginationItem>
+      );
+      
+      if (startPage > 2) {
+        pageItems.push(
+          <PaginationItem key="ellipsis1">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+    }
+    
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pageItems.push(
+        <PaginationItem key={i}>
+          <PaginationLink 
+            isActive={currentPage === i}
+            onClick={() => goToPage(i)}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pageItems.push(
+          <PaginationItem key="ellipsis2">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+      
+      pageItems.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink onClick={() => goToPage(totalPages)}>
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Next button
+    pageItems.push(
+      <PaginationItem key="next">
+        <PaginationNext 
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+        />
+      </PaginationItem>
+    );
+    
+    return (
+      <Pagination>
+        <PaginationContent>
+          {pageItems}
+        </PaginationContent>
+      </Pagination>
+    );
   };
   
   return (
@@ -101,7 +225,7 @@ const TransactionList: React.FC = () => {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem key="all" value="">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     <div className="flex items-center">
@@ -142,7 +266,7 @@ const TransactionList: React.FC = () => {
         {/* Transaction list */}
         {filteredTransactions.length > 0 ? (
           <div className="space-y-2">
-            {filteredTransactions.map(transaction => {
+            {paginatedTransactions.map(transaction => {
               const category = getCategoryById(transaction.categoryId);
               return (
                 <div 
@@ -166,6 +290,13 @@ const TransactionList: React.FC = () => {
                       <span>{format(new Date(transaction.date), 'MMM d, yyyy')}</span>
                     </div>
                     <div className="flex items-center justify-end space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => navigate(`/transactions/${transaction.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
@@ -209,6 +340,10 @@ const TransactionList: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/transactions/${transaction.id}`)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate(`/transactions/edit/${transaction.id}`)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
@@ -234,6 +369,13 @@ const TransactionList: React.FC = () => {
               <Plus className="mr-2 h-4 w-4" />
               Add Your First Transaction
             </Button>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {filteredTransactions.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            {renderPagination()}
           </div>
         )}
       </CardContent>
