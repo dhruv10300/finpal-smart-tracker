@@ -34,13 +34,18 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
+  // Format amount as INR
+  const formatINR = (amount: number) => {
+    return `₹${amount.toFixed(2)}`;
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
       {/* Mobile view */}
       <div className="md:hidden space-y-2">
         <div className="flex items-center justify-between">
           <span className="font-medium">{transaction.description}</span>
-          <span className="font-semibold">${transaction.amount.toFixed(2)}</span>
+          <span className="font-semibold">{formatINR(transaction.amount)}</span>
         </div>
         <div className="flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center">
@@ -93,7 +98,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         {format(new Date(transaction.date), 'MMM d, yyyy')}
       </div>
       <div className="hidden md:block col-span-2 font-semibold">
-        ${transaction.amount.toFixed(2)}
+        {formatINR(transaction.amount)}
       </div>
       <div className="hidden md:flex col-span-1 justify-end">
         <DropdownMenu>

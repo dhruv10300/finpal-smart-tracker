@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { format } from 'date-fns';
 
 const Transactions = () => {
-  const { transactions, getTotalExpense } = useExpense();
+  const { transactions, getTotalExpense, formatCurrency } = useExpense();
   
   // Get current month's transactions
   const currentDate = new Date();
@@ -44,7 +44,7 @@ const Transactions = () => {
                   Total Expenses
                 </p>
                 <p className="text-3xl font-bold mt-1">
-                  ${totalExpense.toFixed(2)}
+                  {formatCurrency(totalExpense)}
                 </p>
               </div>
             </CardContent>
@@ -57,7 +57,7 @@ const Transactions = () => {
                   {format(currentDate, 'MMMM yyyy')} Expenses
                 </p>
                 <p className="text-3xl font-bold mt-1">
-                  ${monthlyTotal.toFixed(2)}
+                  {formatCurrency(monthlyTotal)}
                 </p>
               </div>
             </CardContent>

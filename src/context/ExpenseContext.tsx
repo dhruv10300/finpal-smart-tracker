@@ -28,6 +28,7 @@ interface ExpenseContextType {
   getTotalExpense: () => number;
   getMonthlyTotal: (month: number, year: number) => number;
   getCategoryById: (id: string) => Category | undefined;
+  formatCurrency: (amount: number) => string;
 }
 
 // Create the context
@@ -35,14 +36,14 @@ const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
 // Sample categories
 const INITIAL_CATEGORIES: Category[] = [
-  { id: 'cat-1', name: 'Food & Dining', color: '#F87171' },
-  { id: 'cat-2', name: 'Transportation', color: '#60A5FA' },
-  { id: 'cat-3', name: 'Entertainment', color: '#34D399' },
-  { id: 'cat-4', name: 'Housing', color: '#A78BFA' },
-  { id: 'cat-5', name: 'Utilities', color: '#FBBF24' },
-  { id: 'cat-6', name: 'Shopping', color: '#EC4899' },
-  { id: 'cat-7', name: 'Healthcare', color: '#6366F1' },
-  { id: 'cat-8', name: 'Other', color: '#9CA3AF' },
+  { id: 'cat-1', name: 'Food & Dining', color: '#FF6384' },
+  { id: 'cat-2', name: 'Transportation', color: '#36A2EB' },
+  { id: 'cat-3', name: 'Entertainment', color: '#FFCE56' },
+  { id: 'cat-4', name: 'Housing', color: '#4BC0C0' },
+  { id: 'cat-5', name: 'Utilities', color: '#9966FF' },
+  { id: 'cat-6', name: 'Shopping', color: '#FF9F40' },
+  { id: 'cat-7', name: 'Healthcare', color: '#8AC926' },
+  { id: 'cat-8', name: 'Other', color: '#1982C4' },
 ];
 
 // Sample transactions
@@ -51,7 +52,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-1',
     date: '2025-04-25',
     description: 'Grocery shopping at Whole Foods',
-    amount: 87.32,
+    amount: 7500.32,
     categoryId: 'cat-1',
     userId: '1',
   },
@@ -59,7 +60,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-2',
     date: '2025-04-24',
     description: 'Uber ride to airport',
-    amount: 42.50,
+    amount: 3500.50,
     categoryId: 'cat-2',
     userId: '1',
   },
@@ -67,7 +68,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-3',
     date: '2025-04-23',
     description: 'Movie tickets',
-    amount: 28.00,
+    amount: 2200.00,
     categoryId: 'cat-3',
     userId: '1',
   },
@@ -75,7 +76,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-4',
     date: '2025-04-22',
     description: 'Monthly rent payment',
-    amount: 1500.00,
+    amount: 25000.00,
     categoryId: 'cat-4',
     userId: '1',
   },
@@ -83,7 +84,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-5',
     date: '2025-04-21',
     description: 'Electricity bill',
-    amount: 112.43,
+    amount: 3500.43,
     categoryId: 'cat-5',
     userId: '1',
   },
@@ -91,7 +92,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-6',
     date: '2025-04-20',
     description: 'New shoes from Nike',
-    amount: 129.99,
+    amount: 6999.99,
     categoryId: 'cat-6',
     userId: '1',
   },
@@ -99,7 +100,7 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-7',
     date: '2025-04-19',
     description: 'Doctor visit copay',
-    amount: 25.00,
+    amount: 1200.00,
     categoryId: 'cat-7',
     userId: '1',
   },
@@ -107,7 +108,40 @@ const SAMPLE_TRANSACTIONS: Transaction[] = [
     id: 'tr-8',
     date: '2025-04-18',
     description: 'Coffee shop',
-    amount: 5.75,
+    amount: 350.75,
+    categoryId: 'cat-1',
+    userId: '1',
+  },
+  // Adding more historical data for the ML model to use
+  {
+    id: 'tr-9',
+    date: '2025-03-15',
+    description: 'Grocery shopping',
+    amount: 6800.50,
+    categoryId: 'cat-1',
+    userId: '1',
+  },
+  {
+    id: 'tr-10',
+    date: '2025-03-10',
+    description: 'Gas bill',
+    amount: 2500.00,
+    categoryId: 'cat-5',
+    userId: '1',
+  },
+  {
+    id: 'tr-11',
+    date: '2025-02-28',
+    description: 'Monthly rent payment',
+    amount: 25000.00,
+    categoryId: 'cat-4',
+    userId: '1',
+  },
+  {
+    id: 'tr-12',
+    date: '2025-02-15',
+    description: 'Restaurant dinner',
+    amount: 4200.00,
     categoryId: 'cat-1',
     userId: '1',
   },
@@ -130,6 +164,11 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
       setTransactions([]);
     }
   }, [user]);
+
+  // Format currency as INR
+  const formatCurrency = (amount: number) => {
+    return `₹${amount.toFixed(2)}`;
+  };
 
   // Add a new transaction
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
@@ -192,6 +231,7 @@ export const ExpenseProvider: React.FC<{ children: ReactNode }> = ({ children })
         getTotalExpense,
         getMonthlyTotal,
         getCategoryById,
+        formatCurrency,
       }}
     >
       {children}
