@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { useExpense } from '@/context/ExpenseContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,7 +56,7 @@ const DashboardStats: React.FC = () => {
           <Wallet className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${monthlyExpenses.toFixed(2)}</div>
+          <div className="text-2xl font-bold">₹{monthlyExpenses.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             For {new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' })} {currentYear}
           </p>
@@ -74,7 +73,7 @@ const DashboardStats: React.FC = () => {
         <CardContent>
           <div className="text-2xl font-bold">{topCategory?.category.name || 'None'}</div>
           <p className="text-xs text-muted-foreground">
-            ${topCategory?.total.toFixed(2) || '0.00'} total spent
+            ₹{topCategory?.total.toFixed(2) || '0.00'} total spent
           </p>
         </CardContent>
       </Card>
@@ -87,7 +86,7 @@ const DashboardStats: React.FC = () => {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${averageAmount.toFixed(2)}</div>
+          <div className="text-2xl font-bold">₹{averageAmount.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
             Across {transactions.length} transactions
           </p>

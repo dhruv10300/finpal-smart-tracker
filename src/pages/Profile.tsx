@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AppLayout from '@/components/Layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,7 +116,7 @@ const Profile = () => {
                     <Label htmlFor="currency">Currency</Label>
                     <Input
                       id="currency"
-                      defaultValue="USD"
+                      defaultValue="INR"
                       disabled
                     />
                     <p className="text-sm text-gray-500 mt-1">

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +13,7 @@ export const AmountField: React.FC<AmountFieldProps> = ({
 }) => {
   return (
     <div className="space-y-2">
-      <Label htmlFor="amount">Amount ($)</Label>
+      <Label htmlFor="amount">Amount (₹)</Label>
       <Input
         id="amount"
         type="number"
