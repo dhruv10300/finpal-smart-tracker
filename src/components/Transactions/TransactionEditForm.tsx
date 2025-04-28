@@ -3,18 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useExpense } from '@/context/ExpenseContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DescriptionField } from './FormFields/DescriptionField';
+import { AmountField } from './FormFields/AmountField';
+import { CategoryField } from './FormFields/CategoryField';
+import { DateField } from './FormFields/DateField';
 
 interface TransactionEditFormProps {
   id: string;
@@ -22,7 +17,7 @@ interface TransactionEditFormProps {
 }
 
 const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess }) => {
-  const { transactions, categories, updateTransaction, getCategoryById } = useExpense();
+  const { transactions, categories, updateTransaction } = useExpense();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -33,7 +28,6 @@ const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transaction, setTransaction] = useState<any>(null);
   
-  // Load transaction data
   useEffect(() => {
     const foundTransaction = transactions.find(t => t.id === id);
     if (foundTransaction) {
@@ -52,22 +46,13 @@ const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess
     }
   }, [id, transactions, navigate]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!categoryId) {
+    if (!categoryId || !user) {
       toast({
         title: 'Error',
-        description: 'Please select a category',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    if (!user) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to update a transaction',
+        description: !categoryId ? 'Please select a category' : 'You must be logged in',
         variant: 'destructive',
       });
       return;
@@ -76,7 +61,6 @@ const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess
     setIsSubmitting(true);
     
     try {
-      // Update the transaction
       updateTransaction(id, {
         date,
         description,
@@ -89,7 +73,6 @@ const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess
         description: 'Transaction updated successfully',
       });
       
-      // Call the onSuccess callback if provided
       if (onSuccess) {
         onSuccess();
       }
@@ -121,63 +104,14 @@ const TransactionEditForm: React.FC<TransactionEditFormProps> = ({ id, onSuccess
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4" id="transaction-form">
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="e.g., Grocery shopping, Uber ride"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount ($)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center">
-                      <span
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: category.color }}
-                      ></span>
-                      {category.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
+          <DescriptionField value={description} onChange={setDescription} />
+          <AmountField value={amount} onChange={setAmount} />
+          <CategoryField 
+            value={categoryId} 
+            onChange={setCategoryId}
+            categories={categories}
+          />
+          <DateField value={date} onChange={setDate} />
         </form>
       </CardContent>
       <CardFooter className="flex justify-between">
