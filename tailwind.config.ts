@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -26,11 +27,30 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					// Financial theme colors
+					50: '#ebf5ff',
+					100: '#e1effe',
+					200: '#c3ddfd',
+					300: '#a4cafe',
+					400: '#76a9fa',
+					500: '#1a365d', // Primary blue
+					600: '#1e429f',
+					700: '#1a366d',
+					800: '#162c5b',
+					900: '#13244d',
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					foreground: 'hsl(var(--secondary-foreground))',
+					// Teal shades
+					500: '#2c7a7b', // Secondary teal
+				},
+				accent: {
+					DEFAULT: 'hsl(var(--accent))',
+					foreground: 'hsl(var(--accent-foreground))',
+					// Amber/gold shades
+					500: '#d69e2e', // Accent amber
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
