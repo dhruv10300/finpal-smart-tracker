@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define user type
@@ -6,6 +5,14 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  monthlySalary?: number;
+  financialGoals?: {
+    savings?: number;
+    investment?: number;
+    emergency?: number;
+    retirement?: number;
+  };
+  ageGroup?: 'young' | 'adult' | 'senior';
 }
 
 // Define the auth context shape

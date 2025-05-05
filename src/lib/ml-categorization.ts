@@ -92,20 +92,24 @@ class TfIdfVectorizer {
   }
 }
 
-// Transaction classifier using a simple Naive Bayes approach
+// Enhanced transaction classifier with improved prediction capabilities
 export class TransactionCategorizer {
   private vectorizer: TfIdfVectorizer;
   private categories: Map<string, string>; // Map category IDs to names
   private categoryFeatures: Map<string, number[]>; // Mean vector for each category
   private categoryPriors: Map<string, number>; // Prior probability for each category
+  private merchantToCategory: Map<string, Map<string, number>>; // Map merchant to category frequencies
+  private seasonalPatterns: Map<string, Map<number, number>>; // Map category to monthly patterns
   private trained: boolean;
-  private feedbackData: {description: string, actualCategoryId: string}[];
+  private feedbackData: {description: string, actualCategoryId: string, date?: string}[];
   
   constructor() {
     this.vectorizer = new TfIdfVectorizer();
     this.categories = new Map();
     this.categoryFeatures = new Map();
     this.categoryPriors = new Map();
+    this.merchantToCategory = new Map();
+    this.seasonalPatterns = new Map();
     this.trained = false;
     this.feedbackData = [];
   }
@@ -128,6 +132,12 @@ export class TransactionCategorizer {
     // Calculate category priors and mean feature vectors
     const categoryCounts = new Map<string, number>();
     const categoryVectors = new Map<string, number[][]>();
+    
+    // Process merchant patterns
+    this.processMerchantToCategory(transactions);
+    
+    // Process seasonal patterns
+    this.processSeasonalPatterns(transactions);
     
     categoryIds.forEach((categoryId, index) => {
       categoryCounts.set(categoryId, (categoryCounts.get(categoryId) || 0) + 1);
@@ -165,11 +175,211 @@ export class TransactionCategorizer {
     this.trained = true;
   }
   
-  predict(description: string): { categoryId: string, confidence: number } {
+  // Process merchant to category mapping
+  private processMerchantToCategory(transactions: Transaction[]): void {
+    // Clear existing data
+    this.merchantToCategory.clear();
+    
+    transactions.forEach(transaction => {
+      const merchant = this.extractMerchantName(transaction.description);
+      if (!merchant) return;
+      
+      // Initialize merchant entry if it doesn't exist
+      if (!this.merchantToCategory.has(merchant)) {
+        this.merchantToCategory.set(merchant, new Map());
+      }
+      
+      const categoryMap = this.merchantToCategory.get(merchant)!;
+      // Increment category count for this merchant
+      categoryMap.set(
+        transaction.categoryId,
+        (categoryMap.get(transaction.categoryId) || 0) + 1
+      );
+    });
+  }
+  
+  // Extract merchant name from transaction description
+  private extractMerchantName(description: string): string | null {
+    if (!description) return null;
+    
+    // Clean the description
+    const cleanedDesc = description.toLowerCase().trim();
+    
+    // Simple rule-based extraction
+    // Take first part before any common separators
+    const separators = [' - ', '/', 'payment to', 'purchase at', 'txn*'];
+    
+    for (const separator of separators) {
+      if (cleanedDesc.includes(separator)) {
+        const parts = cleanedDesc.split(separator);
+        return parts[0].trim() || parts[1].trim();
+      }
+    }
+    
+    // Return first 3 words if no separator found
+    const words = cleanedDesc.split(' ');
+    return words.slice(0, Math.min(3, words.length)).join(' ');
+  }
+  
+  // Process seasonal spending patterns by category
+  private processSeasonalPatterns(transactions: Transaction[]): void {
+    // Clear existing data
+    this.seasonalPatterns.clear();
+    
+    // Initialize all categories
+    transactions.forEach(transaction => {
+      if (!this.seasonalPatterns.has(transaction.categoryId)) {
+        this.seasonalPatterns.set(transaction.categoryId, new Map());
+        
+        // Initialize all months to 0
+        for (let month = 0; month < 12; month++) {
+          this.seasonalPatterns.get(transaction.categoryId)!.set(month, 0);
+        }
+      }
+    });
+    
+    // Process transactions
+    transactions.forEach(transaction => {
+      if (!transaction.date) return;
+      
+      const date = new Date(transaction.date);
+      const month = date.getMonth();
+      
+      // Skip if invalid date
+      if (isNaN(date.getTime())) return;
+      
+      const categoryMap = this.seasonalPatterns.get(transaction.categoryId);
+      if (categoryMap) {
+        // Increment count for this month
+        categoryMap.set(month, (categoryMap.get(month) || 0) + 1);
+      }
+    });
+    
+    // Normalize patterns for each category
+    this.seasonalPatterns.forEach((monthMap, categoryId) => {
+      const total = Array.from(monthMap.values()).reduce((sum, count) => sum + count, 0);
+      
+      if (total > 0) {
+        monthMap.forEach((count, month) => {
+          monthMap.set(month, count / total);
+        });
+      }
+    });
+  }
+  
+  predict(description: string, date?: string): { categoryId: string, confidence: number } {
     if (!this.trained) {
       throw new Error("Model has not been trained yet");
     }
     
+    // Get merchant-based prediction
+    const merchantPrediction = this.predictByMerchant(description);
+    
+    // If merchant prediction is highly confident, return it
+    if (merchantPrediction && merchantPrediction.confidence > 0.8) {
+      return merchantPrediction;
+    }
+    
+    // Get content-based prediction
+    const contentPrediction = this.predictByContent(description);
+    
+    // Get seasonal prediction if date is provided
+    let seasonalBoost = new Map<string, number>();
+    if (date) {
+      seasonalBoost = this.getSeasonalBoost(date);
+    }
+    
+    // Combine predictions with weights
+    const finalScores = new Map<string, number>();
+    
+    // Start with content prediction (base prediction)
+    this.categories.forEach((_, categoryId) => {
+      finalScores.set(categoryId, 0);
+    });
+    
+    // Add merchant prediction with high weight if available
+    if (merchantPrediction) {
+      finalScores.set(
+        merchantPrediction.categoryId, 
+        (finalScores.get(merchantPrediction.categoryId) || 0) + merchantPrediction.confidence * 3
+      );
+    }
+    
+    // Add content prediction with medium weight
+    finalScores.set(
+      contentPrediction.categoryId,
+      (finalScores.get(contentPrediction.categoryId) || 0) + contentPrediction.confidence * 2
+    );
+    
+    // Add seasonal boost with low weight
+    seasonalBoost.forEach((boost, categoryId) => {
+      finalScores.set(
+        categoryId,
+        (finalScores.get(categoryId) || 0) + boost * 1
+      );
+    });
+    
+    // Find best category
+    let bestCategoryId = '';
+    let bestScore = -Infinity;
+    
+    finalScores.forEach((score, categoryId) => {
+      if (score > bestScore) {
+        bestScore = score;
+        bestCategoryId = categoryId;
+      }
+    });
+    
+    // Calculate confidence as normalized score
+    let totalScore = 0;
+    finalScores.forEach(score => totalScore += Math.max(0, score));
+    
+    const confidence = totalScore > 0 
+      ? Math.min(1, Math.max(0, finalScores.get(bestCategoryId) || 0) / totalScore) 
+      : contentPrediction.confidence;
+    
+    return {
+      categoryId: bestCategoryId || contentPrediction.categoryId,
+      confidence
+    };
+  }
+  
+  // Predict based on merchant name pattern
+  private predictByMerchant(description: string): { categoryId: string, confidence: number } | null {
+    const merchant = this.extractMerchantName(description);
+    if (!merchant || !this.merchantToCategory.has(merchant)) {
+      return null;
+    }
+    
+    const categoryMap = this.merchantToCategory.get(merchant)!;
+    if (categoryMap.size === 0) {
+      return null;
+    }
+    
+    // Find most frequent category for this merchant
+    let bestCategoryId = '';
+    let bestCount = 0;
+    let totalCount = 0;
+    
+    categoryMap.forEach((count, categoryId) => {
+      totalCount += count;
+      if (count > bestCount) {
+        bestCount = count;
+        bestCategoryId = categoryId;
+      }
+    });
+    
+    // Calculate confidence based on frequency
+    const confidence = totalCount > 0 ? bestCount / totalCount : 0;
+    
+    return {
+      categoryId: bestCategoryId,
+      confidence: confidence
+    };
+  }
+  
+  // Predict based on content using TF-IDF
+  private predictByContent(description: string): { categoryId: string, confidence: number } {
     // Vectorize the input description
     const vector = this.vectorizer.transform([description])[0];
     
@@ -212,8 +422,7 @@ export class TransactionCategorizer {
       bestScore = highestPrior;
     }
     
-    // Convert score to confidence value (0-1 range)
-    // Normalize by sum of all scores
+    // Convert score to confidence value
     let totalScore = 0;
     scores.forEach(score => totalScore += Math.max(0, score));
     
@@ -225,8 +434,30 @@ export class TransactionCategorizer {
     };
   }
   
-  addFeedback(description: string, actualCategoryId: string): void {
-    this.feedbackData.push({ description, actualCategoryId });
+  // Get seasonal boost factors based on the date
+  private getSeasonalBoost(dateStr: string): Map<string, number> {
+    const boost = new Map<string, number>();
+    
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return boost;
+      
+      const month = date.getMonth();
+      
+      // Apply seasonal patterns
+      this.seasonalPatterns.forEach((monthMap, categoryId) => {
+        const seasonalFactor = monthMap.get(month) || 0;
+        boost.set(categoryId, seasonalFactor);
+      });
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+    
+    return boost;
+  }
+  
+  addFeedback(description: string, actualCategoryId: string, date?: string): void {
+    this.feedbackData.push({ description, actualCategoryId, date });
   }
   
   // Learn from user feedback and improve the model
@@ -236,7 +467,7 @@ export class TransactionCategorizer {
     // Create augmented transactions with feedback data
     const feedbackTransactions: Transaction[] = this.feedbackData.map((feedback, index) => ({
       id: `feedback-${index}`,
-      date: new Date().toISOString(),
+      date: feedback.date || new Date().toISOString(),
       description: feedback.description,
       amount: 0, // Not relevant for categorization
       categoryId: feedback.actualCategoryId,
@@ -273,7 +504,7 @@ export class TransactionCategorizer {
     
     // Test each transaction
     testTransactions.forEach(transaction => {
-      const prediction = this.predict(transaction.description);
+      const prediction = this.predict(transaction.description, transaction.date);
       const actualCategoryId = transaction.categoryId;
       
       // Update category stats

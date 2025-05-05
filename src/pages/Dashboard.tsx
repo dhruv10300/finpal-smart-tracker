@@ -5,6 +5,7 @@ import CategoryChart from '@/components/Dashboard/CategoryChart';
 import RecentTransactions from '@/components/Dashboard/RecentTransactions';
 import ExpensePrediction from '@/components/Dashboard/ExpensePrediction';
 import ModelPerformance from '@/components/Dashboard/ModelPerformance';
+import InvestmentRecommendations from '@/components/Dashboard/InvestmentRecommendations';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +53,10 @@ const Dashboard = () => {
           <div>
             <ModelPerformance />
           </div>
+        </div>
+        
+        <div className="mb-8">
+          <InvestmentRecommendations />
         </div>
       </div>
     </AppLayout>
